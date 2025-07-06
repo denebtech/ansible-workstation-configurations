@@ -1,0 +1,31 @@
+---
+- name: Workstation Configuration
+  hosts: workstation
+  connection: local
+  become: true
+
+  tasks:
+    - name: Install packages
+      ansible.builtin.apt:
+        state: present
+        name: '{{ item }}'
+      with_items:
+        - pipx
+        - curl
+
+    - name: Check if uv is installed
+      ansible.builtin.stat:
+        path: "{{ lookup('env', 'HOME') }}/.local/bin/uv"
+      register: uv_stat
+    
+    - name: Install uv if not already installed
+      become: false
+      ansible.builtin.shell: >
+        curl -LsSf https://astral.sh/uv/install.sh | bash
+      when: not uv_stat.stat.exists
+
+    - name: Install nvm
+      ansible.builtin.shell: >
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+      args:
+        creates: "{{ lookup('env', 'HOME') }}/.nvm/nvm.sh"
